@@ -7,7 +7,6 @@ import (
 	"kubestream/pkg/utilitycore"
 	"net/http"
 	"os"
-	"path/filepath"
 	"sync"
 
 	"github.com/jedib0t/go-pretty/v6/table"
@@ -18,62 +17,84 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-var (
-	errfailedToUpdateKubeconfig   = errors.New("failed to update kube config file")
-	errfailedToInitiateRestClient = errors.New("failed to initiate k8 rest client")
-)
+// var (
+// 	errfailedToUpdateKubeconfig   = errors.New("failed to update kube config file")
+// 	errfailedToInitiateRestClient = errors.New("failed to initiate k8 rest client")
+// )
 
 var defaultPath = "default"
 
+// var filepath string = "kubeconfig.yaml"
+
 func NewKubeClient(cn string, p string) (*kubernetes.Clientset, error) {
 	fn := utilitycore.GetFn(NewKubeClient)
-	// Define the context you want to switch to
-	newContext := cn
-	// Get the kubeconfig file path
-	var kubeconfig string
-	if p == "default" {
-		kubeconfig = filepath.Join(os.Getenv("HOME"), ".kube", "config")
-	} else {
-		kubeconfig = filepath.Join(p, ".kube", "config")
-	}
 
-	// Load the existing kubeconfig
-	config, err := clientcmd.LoadFromFile(kubeconfig)
-	if err != nil {
-		fmt.Printf("Failed to load kubeconfig: %v\n", err)
-		return nil, clientcmd.NewEmptyConfigError("failed to laod the kube config file")
-	}
-
-	// Check if the context exists
-	if _, exists := config.Contexts[newContext]; !exists {
-		fmt.Printf("Context %s does not exist in kubeconfig\n", newContext)
-		return nil, clientcmd.NewEmptyConfigError("given cluster context doesn't exists")
-	}
-
-	// Set the current context
-	config.CurrentContext = newContext
-
-	// Save the modified kubeconfig
-	err = clientcmd.WriteToFile(*config, kubeconfig)
-	if err != nil {
-		fmt.Printf("Failed to write kubeconfig: %v\n", err)
-		return nil, errfailedToUpdateKubeconfig
-	}
-
-	currentContextConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	var kubeconfig *string = &p
+	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
 
 	if err != nil {
 		log.Error().Msg(fmt.Sprintf("[%s] couldn't able to build the kube config file", fn))
-		return nil, errfailedToUpdateKubeconfig
+		return nil, errors.New("couldn't able to build the kube config file")
 	}
 
-	clientset, err := kubernetes.NewForConfig(currentContextConfig)
+	// create the clientset
+	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		log.Error().Msg(fmt.Sprintf("[%s] couldn't able to create configuration", fn))
-		return nil, errfailedToInitiateRestClient
+		return nil, errors.New("couldn't able to create configuration")
 	}
 	return clientset, nil
 }
+
+// func NewKubeClient(cn string, p string) (*kubernetes.Clientset, error) {
+// 	fn := utilitycore.GetFn(NewKubeClient)
+// 	// Define the context you want to switch to
+// 	newContext := cn
+// 	// Get the kubeconfig file path
+// 	var kubeconfig string
+// 	if p == "default" {
+// 		kubeconfig = filepath.Join(os.Getenv("HOME"), ".kube", "config")
+// 	} else {
+// 		kubeconfig = filepath.Join(p, ".kube", "config")
+// 	}
+
+// 	// Load the existing kubeconfig
+// 	config, err := clientcmd.LoadFromFile(kubeconfig)
+// 	if err != nil {
+// 		fmt.Printf("Failed to load kubeconfig: %v\n", err)
+// 		return nil, clientcmd.NewEmptyConfigError("failed to laod the kube config file")
+// 	}
+
+// 	// Check if the context exists
+// 	if _, exists := config.Contexts[newContext]; !exists {
+// 		fmt.Printf("Context %s does not exist in kubeconfig\n", newContext)
+// 		return nil, clientcmd.NewEmptyConfigError("given cluster context doesn't exists")
+// 	}
+
+// 	// Set the current context
+// 	config.CurrentContext = newContext
+
+// 	// Save the modified kubeconfig
+// 	err = clientcmd.WriteToFile(*config, kubeconfig)
+// 	if err != nil {
+// 		fmt.Printf("Failed to write kubeconfig: %v\n", err)
+// 		return nil, errfailedToUpdateKubeconfig
+// 	}
+
+// 	currentContextConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+
+// 	if err != nil {
+// 		log.Error().Msg(fmt.Sprintf("[%s] couldn't able to build the kube config file", fn))
+// 		return nil, errfailedToUpdateKubeconfig
+// 	}
+
+// 	clientset, err := kubernetes.NewForConfig(currentContextConfig)
+// 	if err != nil {
+// 		log.Error().Msg(fmt.Sprintf("[%s] couldn't able to create configuration", fn))
+// 		return nil, errfailedToInitiateRestClient
+// 	}
+// 	return clientset, nil
+// }
 
 func CloseKubeClient(client *kubernetes.Clientset) bool {
 	if client == nil {
@@ -97,12 +118,12 @@ func ListDeployments(client *kubernetes.Clientset, groupAlias string, namespace 
 		fmt.Printf("Error listing deployments: %v\n", err)
 		return
 	}
-	fmt.Printf("Deployments in namespace %s in alias %s:\n", namespace, groupAlias)
+	// fmt.Printf("Deployments in namespace %s in alias %s:\n", namespace, groupAlias)
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"name", "desired", "actual"})
+	t.AppendHeader(table.Row{"cluster", "type", "name", "desired", "actual"})
 	for _, deployment := range deployments.Items {
-		t.AppendRow([]interface{}{deployment.Name, *deployment.Spec.Replicas, deployment.Status.AvailableReplicas})
+		t.AppendRow([]interface{}{groupAlias, "deployment", deployment.Name, *deployment.Spec.Replicas, deployment.Status.AvailableReplicas})
 		t.AppendSeparator()
 	}
 	t.Render()
@@ -114,12 +135,12 @@ func ListStatefulset(client *kubernetes.Clientset, groupNameAlias string, namesp
 		fmt.Printf("Error listing deployments: %v\n", err)
 		return
 	}
-	fmt.Printf("Deployments in namespace %s in alias %s:\n", namespace, groupNameAlias)
+	// fmt.Printf("Deployments in namespace %s in alias %s:\n", namespace, groupNameAlias)
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"name", "desired", "actual"})
+	t.AppendHeader(table.Row{"cluster", "type", "name", "desired", "actual"})
 	for _, st := range statefulsets.Items {
-		t.AppendRow([]interface{}{st.Name, *st.Spec.Replicas, st.Status.AvailableReplicas})
+		t.AppendRow([]interface{}{groupNameAlias, "statefulset", st.Name, *st.Spec.Replicas, st.Status.AvailableReplicas})
 		t.AppendSeparator()
 	}
 	t.Render()
@@ -131,16 +152,16 @@ func ListDaemonset(client *kubernetes.Clientset, groupNameAlias string, namespac
 		fmt.Printf("Error listing deployments: %v\n", err)
 		return
 	}
-	fmt.Printf("Deployments in namespace %s in alias %s:\n", namespace, groupNameAlias)
+	// fmt.Printf("Deployments in namespace %s in alias %s:\n", namespace, groupNameAlias)
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"name", "desired", "current", "ready", "up-to-date"})
+	t.AppendHeader(table.Row{"cluster", "type", "name", "desired", "current", "ready", "up-to-date"})
 	for _, daemonset := range daemonsets.Items {
 		desired := daemonset.Status.DesiredNumberScheduled
 		current := daemonset.Status.CurrentNumberScheduled
 		ready := daemonset.Status.NumberReady
 		upToDate := daemonset.Status.UpdatedNumberScheduled
-		t.AppendRow([]interface{}{daemonset.Name, desired, current, ready, upToDate})
+		t.AppendRow([]interface{}{groupNameAlias, "daemonset", daemonset.Name, desired, current, ready, upToDate})
 		t.AppendSeparator()
 	}
 	t.Render()
@@ -183,7 +204,7 @@ func GetResourceInformation(apiResourceType, namespace *string, group *string) {
 			wg.Add(1)
 			go func(item utilitycore.KubeConfigMetadata, namespace string) {
 				defer wg.Done()
-				ac, err := NewKubeClient(item.NameAlias, "default")
+				ac, err := NewKubeClient(item.NameAlias, item.Kubeconfig)
 				if err != nil {
 					log.Error().Msg("Error: failed to establish kubeclient with group")
 					return
@@ -201,7 +222,7 @@ func GetResourceInformation(apiResourceType, namespace *string, group *string) {
 			wg.Add(1)
 			go func(item utilitycore.KubeConfigMetadata, namespace string) {
 				defer wg.Done()
-				ac, err := NewKubeClient(item.NameAlias, "default")
+				ac, err := NewKubeClient(item.NameAlias, item.Kubeconfig)
 				if err != nil {
 					log.Error().Msg("Error: failed to establish kubeclient with group")
 					return
@@ -219,7 +240,7 @@ func GetResourceInformation(apiResourceType, namespace *string, group *string) {
 			wg.Add(1)
 			go func(item utilitycore.KubeConfigMetadata, namespace string) {
 				defer wg.Done()
-				ac, err := NewKubeClient(item.NameAlias, "default")
+				ac, err := NewKubeClient(item.NameAlias, item.Kubeconfig)
 				if err != nil {
 					log.Error().Msg("Error: failed to establish kubeclient with group")
 					return
