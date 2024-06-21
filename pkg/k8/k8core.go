@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 
+	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/rs/zerolog/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -89,16 +91,21 @@ func CloseKubeClient(client *kubernetes.Clientset) bool {
 	return false
 }
 
-func ListDeployments(client *kubernetes.Clientset, namespace string) {
+func ListDeployments(client *kubernetes.Clientset, groupAlias string, namespace string) {
 	deployments, err := client.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		fmt.Printf("Error listing deployments: %v\n", err)
 		return
 	}
-	fmt.Printf("Deployments in namespace %s:\n", namespace)
+	fmt.Printf("Deployments in namespace %s in alias %s:\n", namespace, groupAlias)
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"name", "desired", "actual"})
 	for _, deployment := range deployments.Items {
-		fmt.Printf(" - name: %s | replicas: %d vs %d\n", deployment.Name, *deployment.Spec.Replicas, deployment.Status.AvailableReplicas)
+		t.AppendRow([]interface{}{deployment.Name, *deployment.Spec.Replicas, deployment.Status.AvailableReplicas})
+		t.AppendSeparator()
 	}
+	t.Render()
 }
 
 func ListStatefulset(client *kubernetes.Clientset, namespace string) {
@@ -151,14 +158,32 @@ func ListNode(client *kubernetes.Clientset) {
 }
 
 func GetResourceInformation(apiResourceType, namespace *string, group *string) {
+	// todo: streamline the pre-requisite
+	utilitycore.ParseConfigObject()
+	ccContext := utilitycore.QueryConfigObject(*group)
+	if ccContext == (&utilitycore.ObjectMetadata{}) {
+		fmt.Println("group by current context is filtered as empty")
+		return
+	}
 	switch *apiResourceType {
+	// todo: come up with a better case switcher, goal is to support all the k8 objects
 	case "deployments":
-		ac, err := NewKubeClient(*group, defaultPath)
-		if err != nil {
-			log.Error().Msg("Error: failed to establish kubeclient with group")
-			return
+		var wg sync.WaitGroup
+		for _, item := range ccContext.KubernetesCluster {
+			wg.Add(1)
+			go func(item utilitycore.KubeConfigMetadata, namespace string) {
+				defer wg.Done()
+				ac, err := NewKubeClient(item.NameAlias, "default")
+				if err != nil {
+					log.Error().Msg("Error: failed to establish kubeclient with group")
+					return
+				}
+				ListDeployments(ac, item.NameAlias, namespace)
+			}(item, *namespace)
 		}
-		ListDeployments(ac, *namespace)
+
+		wg.Wait()
+
 	case "statefulsets":
 		ac, err := NewKubeClient(*group, defaultPath)
 		if err != nil {
