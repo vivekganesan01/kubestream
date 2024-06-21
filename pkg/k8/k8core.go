@@ -108,32 +108,42 @@ func ListDeployments(client *kubernetes.Clientset, groupAlias string, namespace 
 	t.Render()
 }
 
-func ListStatefulset(client *kubernetes.Clientset, namespace string) {
-	deployments, err := client.AppsV1().StatefulSets(namespace).List(context.TODO(), metav1.ListOptions{})
+func ListStatefulset(client *kubernetes.Clientset, groupNameAlias string, namespace string) {
+	statefulsets, err := client.AppsV1().StatefulSets(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		fmt.Printf("Error listing deployments: %v\n", err)
 		return
 	}
-	fmt.Printf("Deployments in namespace %s:\n", namespace)
-	for _, deployment := range deployments.Items {
-		fmt.Printf(" - name: %s | replicas: %d vs %d\n", deployment.Name, *deployment.Spec.Replicas, deployment.Status.AvailableReplicas)
+	fmt.Printf("Deployments in namespace %s in alias %s:\n", namespace, groupNameAlias)
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"name", "desired", "actual"})
+	for _, st := range statefulsets.Items {
+		t.AppendRow([]interface{}{st.Name, *st.Spec.Replicas, st.Status.AvailableReplicas})
+		t.AppendSeparator()
 	}
+	t.Render()
 }
 
-func ListDaemonset(client *kubernetes.Clientset, namespace string) {
+func ListDaemonset(client *kubernetes.Clientset, groupNameAlias string, namespace string) {
 	daemonsets, err := client.AppsV1().DaemonSets(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		fmt.Printf("Error listing deployments: %v\n", err)
 		return
 	}
-	fmt.Printf("Deployments in namespace %s:\n", namespace)
+	fmt.Printf("Deployments in namespace %s in alias %s:\n", namespace, groupNameAlias)
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"name", "desired", "current", "ready", "up-to-date"})
 	for _, daemonset := range daemonsets.Items {
 		desired := daemonset.Status.DesiredNumberScheduled
 		current := daemonset.Status.CurrentNumberScheduled
 		ready := daemonset.Status.NumberReady
 		upToDate := daemonset.Status.UpdatedNumberScheduled
-		fmt.Printf(" - name: %s | Desired: %d, Current: %d, Ready: %d, Up-to-date: %d\n", daemonset.Name, desired, current, ready, upToDate)
+		t.AppendRow([]interface{}{daemonset.Name, desired, current, ready, upToDate})
+		t.AppendSeparator()
 	}
+	t.Render()
 }
 func ListPods(client *kubernetes.Clientset, namespace string) {
 	pods, err := client.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
@@ -185,19 +195,41 @@ func GetResourceInformation(apiResourceType, namespace *string, group *string) {
 		wg.Wait()
 
 	case "statefulsets":
-		ac, err := NewKubeClient(*group, defaultPath)
-		if err != nil {
-			log.Error().Msg("Error: failed to establish kubeclient with group")
-			return
+
+		var wg sync.WaitGroup
+		for _, item := range ccContext.KubernetesCluster {
+			wg.Add(1)
+			go func(item utilitycore.KubeConfigMetadata, namespace string) {
+				defer wg.Done()
+				ac, err := NewKubeClient(item.NameAlias, "default")
+				if err != nil {
+					log.Error().Msg("Error: failed to establish kubeclient with group")
+					return
+				}
+				ListStatefulset(ac, item.NameAlias, namespace)
+			}(item, *namespace)
 		}
-		ListStatefulset(ac, *namespace)
+
+		wg.Wait()
+
 	case "daemonsets":
-		ac, err := NewKubeClient(*group, defaultPath)
-		if err != nil {
-			log.Error().Msg("Error: failed to establish kubeclient with group")
-			return
+
+		var wg sync.WaitGroup
+		for _, item := range ccContext.KubernetesCluster {
+			wg.Add(1)
+			go func(item utilitycore.KubeConfigMetadata, namespace string) {
+				defer wg.Done()
+				ac, err := NewKubeClient(item.NameAlias, "default")
+				if err != nil {
+					log.Error().Msg("Error: failed to establish kubeclient with group")
+					return
+				}
+				ListDaemonset(ac, item.NameAlias, namespace)
+			}(item, *namespace)
 		}
-		ListDaemonset(ac, *namespace)
+
+		wg.Wait()
+
 	case "pods":
 		ac, err := NewKubeClient(*group, defaultPath)
 		if err != nil {
