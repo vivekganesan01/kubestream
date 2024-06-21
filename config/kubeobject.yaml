@@ -1,0 +1,10 @@
+kubernetes_cluster:
+  - name_alias: cluster_01
+    kubeconfig: ""
+    group_by: us-east
+  - name_alias: cluster_01
+    kubeconfig: ""
+    group_by: prod
+  - name_alias: cluster_01
+    kubeconfig: ""
+    group_by: staging
