@@ -4,12 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"kubestream/pkg/utilitycore"
 	"net/http"
-	"os"
 	"sync"
 
-	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/rs/zerolog/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -112,60 +111,6 @@ func CloseKubeClient(client *kubernetes.Clientset) bool {
 	return false
 }
 
-func ListDeployments(client *kubernetes.Clientset, groupAlias string, namespace string) {
-	deployments, err := client.AppsV1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		fmt.Printf("Error listing deployments: %v\n", err)
-		return
-	}
-	// fmt.Printf("Deployments in namespace %s in alias %s:\n", namespace, groupAlias)
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"cluster", "type", "name", "desired", "actual"})
-	for _, deployment := range deployments.Items {
-		t.AppendRow([]interface{}{groupAlias, "deployment", deployment.Name, *deployment.Spec.Replicas, deployment.Status.AvailableReplicas})
-		t.AppendSeparator()
-	}
-	t.Render()
-}
-
-func ListStatefulset(client *kubernetes.Clientset, groupNameAlias string, namespace string) {
-	statefulsets, err := client.AppsV1().StatefulSets(namespace).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		fmt.Printf("Error listing deployments: %v\n", err)
-		return
-	}
-	// fmt.Printf("Deployments in namespace %s in alias %s:\n", namespace, groupNameAlias)
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"cluster", "type", "name", "desired", "actual"})
-	for _, st := range statefulsets.Items {
-		t.AppendRow([]interface{}{groupNameAlias, "statefulset", st.Name, *st.Spec.Replicas, st.Status.AvailableReplicas})
-		t.AppendSeparator()
-	}
-	t.Render()
-}
-
-func ListDaemonset(client *kubernetes.Clientset, groupNameAlias string, namespace string) {
-	daemonsets, err := client.AppsV1().DaemonSets(namespace).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		fmt.Printf("Error listing deployments: %v\n", err)
-		return
-	}
-	// fmt.Printf("Deployments in namespace %s in alias %s:\n", namespace, groupNameAlias)
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"cluster", "type", "name", "desired", "current", "ready", "up-to-date"})
-	for _, daemonset := range daemonsets.Items {
-		desired := daemonset.Status.DesiredNumberScheduled
-		current := daemonset.Status.CurrentNumberScheduled
-		ready := daemonset.Status.NumberReady
-		upToDate := daemonset.Status.UpdatedNumberScheduled
-		t.AppendRow([]interface{}{groupNameAlias, "daemonset", daemonset.Name, desired, current, ready, upToDate})
-		t.AppendSeparator()
-	}
-	t.Render()
-}
 func ListPods(client *kubernetes.Clientset, namespace string) {
 	pods, err := client.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
@@ -209,7 +154,12 @@ func GetResourceInformation(apiResourceType, namespace *string, group *string) {
 					log.Error().Msg("Error: failed to establish kubeclient with group")
 					return
 				}
-				ListDeployments(ac, item.NameAlias, namespace)
+				dMetaData := Deployments{
+					Client:         ac,
+					GroupNameAlias: item.NameAlias,
+					Namespace:      namespace,
+				}
+				FetchStandardAPIResources(&dMetaData)
 			}(item, *namespace)
 		}
 
@@ -227,7 +177,12 @@ func GetResourceInformation(apiResourceType, namespace *string, group *string) {
 					log.Error().Msg("Error: failed to establish kubeclient with group")
 					return
 				}
-				ListStatefulset(ac, item.NameAlias, namespace)
+				ssMetadata := StatefulSets{
+					Client:         ac,
+					GroupNameAlias: item.NameAlias,
+					Namespace:      namespace,
+				}
+				FetchStandardAPIResources(&ssMetadata)
 			}(item, *namespace)
 		}
 
@@ -245,7 +200,12 @@ func GetResourceInformation(apiResourceType, namespace *string, group *string) {
 					log.Error().Msg("Error: failed to establish kubeclient with group")
 					return
 				}
-				ListDaemonset(ac, item.NameAlias, namespace)
+				ds := Daemonsets{
+					Client:         ac,
+					GroupNameAlias: item.GroupBy,
+					Namespace:      namespace,
+				}
+				FetchStandardAPIResources(&ds)
 			}(item, *namespace)
 		}
 
@@ -261,3 +221,6 @@ func GetResourceInformation(apiResourceType, namespace *string, group *string) {
 	default:
 	}
 }
+
+
+// todo: move all the goroutine logic to
