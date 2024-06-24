@@ -91,6 +91,7 @@ func GetResourceInformation(apiResourceType, namespace *string, group *string) {
 		fmt.Println("group by current context is filtered as empty")
 		return
 	}
+	// todo: move all the goroutine logic
 	switch *apiResourceType {
 	// todo: come up with a better case switcher, goal is to support all the k8 objects
 	case "deployments":
@@ -171,5 +172,3 @@ func GetResourceInformation(apiResourceType, namespace *string, group *string) {
 	default:
 	}
 }
-
-// todo: move all the goroutine logic to

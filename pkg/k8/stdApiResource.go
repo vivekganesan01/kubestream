@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/table"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
+// todo: add filter native to kubernetes client api
 type K8StandardApiResources interface {
 	List()
 	Update()
@@ -22,6 +23,9 @@ type Deployments struct {
 }
 
 func (d *Deployments) List() {
+	if d.Namespace == "all" {
+		d.Namespace = ""
+	}
 	deployments, err := d.Client.AppsV1().Deployments(d.Namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		fmt.Printf("Error listing deployments: %v\n", err)
@@ -31,9 +35,7 @@ func (d *Deployments) List() {
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"cluster", "type", "namespace", "name", "desired", "current"})
 	for _, deployment := range deployments.Items {
-		// todo: load d.Namespace from response
-		t.AppendRow([]interface{}{d.GroupNameAlias, "deployment", d.Namespace, deployment.Name, *deployment.Spec.Replicas, deployment.Status.AvailableReplicas})
-		t.AppendSeparator()
+		t.AppendRow([]interface{}{d.GroupNameAlias, "deployment", deployment.Namespace, deployment.Name, *deployment.Spec.Replicas, deployment.Status.AvailableReplicas})
 	}
 	t.Render()
 }
@@ -63,8 +65,7 @@ func (ds *Daemonsets) List() {
 		ready := daemonset.Status.NumberReady
 		upToDate := daemonset.Status.UpdatedNumberScheduled
 		// todo: load ds.Namespace from response
-		t.AppendRow([]interface{}{ds.GroupNameAlias, "daemonset", ds.Namespace, daemonset.Name, desired, current, ready, upToDate})
-		t.AppendSeparator()
+		t.AppendRow([]interface{}{ds.GroupNameAlias, "daemonset", daemonset.Namespace, daemonset.Name, desired, current, ready, upToDate})
 	}
 	t.Render()
 }
@@ -88,8 +89,7 @@ func (ss *StatefulSets) List() {
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"cluster", "type", "namespace", "name", "desired", "actual"})
 	for _, st := range statefulsets.Items {
-		t.AppendRow([]interface{}{ss.GroupNameAlias, "statefulset", ss.Namespace, st.Name, *st.Spec.Replicas, st.Status.AvailableReplicas})
-		t.AppendSeparator()
+		t.AppendRow([]interface{}{ss.GroupNameAlias, "statefulset", st.Namespace, st.Name, *st.Spec.Replicas, st.Status.AvailableReplicas})
 	}
 	t.Render()
 }
