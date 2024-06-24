@@ -27,10 +27,15 @@ func (d *Deployments) List() {
 		fmt.Printf("Error listing deployments: %v\n", err)
 		return
 	}
-	fmt.Printf("Deployments in namespace %s for alias %s:\n", d.Namespace, d.GroupNameAlias)
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"cluster", "type", "namespace", "name", "desired", "current"})
 	for _, deployment := range deployments.Items {
-		fmt.Printf(" - name: %s | replicas: %d vs %d\n", deployment.Name, *deployment.Spec.Replicas, deployment.Status.AvailableReplicas)
+		// todo: load d.Namespace from response
+		t.AppendRow([]interface{}{d.GroupNameAlias, "deployment", d.Namespace, deployment.Name, *deployment.Spec.Replicas, deployment.Status.AvailableReplicas})
+		t.AppendSeparator()
 	}
+	t.Render()
 }
 
 func (d *Deployments) Update() {
@@ -49,16 +54,16 @@ func (ds *Daemonsets) List() {
 		fmt.Printf("Error listing deployments: %v\n", err)
 		return
 	}
-	// fmt.Printf("Deployments in namespace %s in alias %s:\n", namespace, groupNameAlias)
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"cluster", "type", "name", "desired", "current", "ready", "up-to-date"})
+	t.AppendHeader(table.Row{"cluster", "type", "namespace", "name", "desired", "current", "ready", "up-to-date"})
 	for _, daemonset := range daemonsets.Items {
 		desired := daemonset.Status.DesiredNumberScheduled
 		current := daemonset.Status.CurrentNumberScheduled
 		ready := daemonset.Status.NumberReady
 		upToDate := daemonset.Status.UpdatedNumberScheduled
-		t.AppendRow([]interface{}{ds.GroupNameAlias, "daemonset", daemonset.Name, desired, current, ready, upToDate})
+		// todo: load ds.Namespace from response
+		t.AppendRow([]interface{}{ds.GroupNameAlias, "daemonset", ds.Namespace, daemonset.Name, desired, current, ready, upToDate})
 		t.AppendSeparator()
 	}
 	t.Render()
@@ -79,12 +84,11 @@ func (ss *StatefulSets) List() {
 		fmt.Printf("Error listing deployments: %v\n", err)
 		return
 	}
-	// fmt.Printf("Deployments in namespace %s in alias %s:\n", namespace, groupNameAlias)
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"cluster", "type", "name", "desired", "actual"})
+	t.AppendHeader(table.Row{"cluster", "type", "namespace", "name", "desired", "actual"})
 	for _, st := range statefulsets.Items {
-		t.AppendRow([]interface{}{ss.GroupNameAlias, "statefulset", st.Name, *st.Spec.Replicas, st.Status.AvailableReplicas})
+		t.AppendRow([]interface{}{ss.GroupNameAlias, "statefulset", ss.Namespace, st.Name, *st.Spec.Replicas, st.Status.AvailableReplicas})
 		t.AppendSeparator()
 	}
 	t.Render()
