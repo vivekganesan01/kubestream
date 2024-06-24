@@ -14,12 +14,14 @@ var rootCmd = &cobra.Command{
 	Use:   "kubestream",
 	Short: "kubestream is an utility to stream k8 objects from multiple cluster",
 	Long: `kubestream is a cli library to stream information and metadata of kubernetes object
-from difference kubernetes cluster as a single entity. For example:
+from difference kubernetes cluster as a single entity simultaneously. For example:
 
-kubestream get --api_resource=deployment --namespace=default --group_by=all
-kubestream get --api_resource=deployment --namespace=default --group_by=${CLUSTER_NAME}
-kubestream get --api_resource=statefulset --namespace=default --group_by=${REGULAR_EXPRESSION}
-kubestream get --api_resource=pod --namespace=default --group_by=${REGULAR_EXPRESSION} [--condition='deployment,statefulset' --filter='crashloop'] 
+./kubestream --help
+
+kubestream get --api_resource=deployment --namespace="all" --group_by="aws-us-east"
+kubestream get --api_resource=daemonset --namespace="default" --group_by="local"
+kubestream get --api_resource=statefulset --namespace="default" --group_by="ibm-us-south"
+kubestream get --api_resource=statefulset --namespace="kube-system" --group_by="all"
 .`,
 
 	Run: func(cmd *cobra.Command, args []string) {

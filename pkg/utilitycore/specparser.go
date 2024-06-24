@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const filePath = "/config/kubeobjectprod.yaml"
+const filePath = "/config/kubeobject.yaml"
 
 type KubeConfigMetadata struct {
 	NameAlias  string `yaml:"name_alias"`

@@ -1,3 +1,4 @@
 
 config/kubeobjectprod.yaml
 .vscode
+kubeobjectprod.yaml
