@@ -59,3 +59,8 @@ kubestream get --api_resource=daemonset --namespace="default" --group_by="local"
 kubestream get --api_resource=statefulset --namespace="default" --group_by="ibm-us-south"
 kubestream get --api_resource=statefulset --namespace="kube-system" --group_by="all"
 ```
+
+Contributing: 
+---
+
+Check out https://github.com/vivekganesan01/kubestream/blob/main/.github/CONTRIBUTING.md#contributing-to-my-project 
