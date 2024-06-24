@@ -45,56 +45,6 @@ func NewKubeClient(cn string, p string) (*kubernetes.Clientset, error) {
 	return clientset, nil
 }
 
-// func NewKubeClient(cn string, p string) (*kubernetes.Clientset, error) {
-// 	fn := utilitycore.GetFn(NewKubeClient)
-// 	// Define the context you want to switch to
-// 	newContext := cn
-// 	// Get the kubeconfig file path
-// 	var kubeconfig string
-// 	if p == "default" {
-// 		kubeconfig = filepath.Join(os.Getenv("HOME"), ".kube", "config")
-// 	} else {
-// 		kubeconfig = filepath.Join(p, ".kube", "config")
-// 	}
-
-// 	// Load the existing kubeconfig
-// 	config, err := clientcmd.LoadFromFile(kubeconfig)
-// 	if err != nil {
-// 		fmt.Printf("Failed to load kubeconfig: %v\n", err)
-// 		return nil, clientcmd.NewEmptyConfigError("failed to laod the kube config file")
-// 	}
-
-// 	// Check if the context exists
-// 	if _, exists := config.Contexts[newContext]; !exists {
-// 		fmt.Printf("Context %s does not exist in kubeconfig\n", newContext)
-// 		return nil, clientcmd.NewEmptyConfigError("given cluster context doesn't exists")
-// 	}
-
-// 	// Set the current context
-// 	config.CurrentContext = newContext
-
-// 	// Save the modified kubeconfig
-// 	err = clientcmd.WriteToFile(*config, kubeconfig)
-// 	if err != nil {
-// 		fmt.Printf("Failed to write kubeconfig: %v\n", err)
-// 		return nil, errfailedToUpdateKubeconfig
-// 	}
-
-// 	currentContextConfig, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-
-// 	if err != nil {
-// 		log.Error().Msg(fmt.Sprintf("[%s] couldn't able to build the kube config file", fn))
-// 		return nil, errfailedToUpdateKubeconfig
-// 	}
-
-// 	clientset, err := kubernetes.NewForConfig(currentContextConfig)
-// 	if err != nil {
-// 		log.Error().Msg(fmt.Sprintf("[%s] couldn't able to create configuration", fn))
-// 		return nil, errfailedToInitiateRestClient
-// 	}
-// 	return clientset, nil
-// }
-
 func CloseKubeClient(client *kubernetes.Clientset) bool {
 	if client == nil {
 		return false
@@ -221,6 +171,5 @@ func GetResourceInformation(apiResourceType, namespace *string, group *string) {
 	default:
 	}
 }
-
 
 // todo: move all the goroutine logic to
