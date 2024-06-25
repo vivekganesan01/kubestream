@@ -16,14 +16,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// var (
-// 	errfailedToUpdateKubeconfig   = errors.New("failed to update kube config file")
-// 	errfailedToInitiateRestClient = errors.New("failed to initiate k8 rest client")
-// )
-
 var defaultPath = "default"
-
-// var filepath string = "kubeconfig.yaml"
 
 func NewKubeClient(cn string, p string) (*kubernetes.Clientset, error) {
 	fn := utilitycore.GetFn(NewKubeClient)
@@ -85,6 +78,8 @@ func ListNode(client *kubernetes.Clientset) {
 
 func GetResourceInformation(apiResourceType, namespace *string, group *string) {
 	// todo: streamline the pre-requisite
+	// todo: add creation time and last modified
+	// todo: filter resource based on name
 	utilitycore.ParseConfigObject()
 	ccContext := utilitycore.QueryConfigObject(*group)
 	if ccContext == (&utilitycore.ObjectMetadata{}) {
@@ -169,6 +164,52 @@ func GetResourceInformation(apiResourceType, namespace *string, group *string) {
 			return
 		}
 		ListPods(ac, *namespace)
+
+	case "secrets":
+
+		var wg sync.WaitGroup
+		for _, item := range ccContext.KubernetesCluster {
+			wg.Add(1)
+			go func(item utilitycore.KubeConfigMetadata, namespace string) {
+				defer wg.Done()
+				ac, err := NewKubeClient(item.NameAlias, item.Kubeconfig)
+				if err != nil {
+					log.Error().Msg("Error: failed to establish kubeclient with group")
+					return
+				}
+				ds := Secrets{
+					Client:         ac,
+					GroupNameAlias: item.GroupBy,
+					Namespace:      namespace,
+				}
+				FetchStandardAPIResources(&ds)
+			}(item, *namespace)
+		}
+
+		wg.Wait()
+
+	case "configmaps":
+		var wg sync.WaitGroup
+		for _, item := range ccContext.KubernetesCluster {
+			wg.Add(1)
+			go func(item utilitycore.KubeConfigMetadata, namespace string) {
+				defer wg.Done()
+				ac, err := NewKubeClient(item.NameAlias, item.Kubeconfig)
+				if err != nil {
+					log.Error().Msg("Error: failed to establish kubeclient with group")
+					return
+				}
+				ds := Secrets{
+					Client:         ac,
+					GroupNameAlias: item.GroupBy,
+					Namespace:      namespace,
+				}
+				FetchStandardAPIResources(&ds)
+			}(item, *namespace)
+		}
+
+		wg.Wait()
 	default:
+		fmt.Println("this api_resource stream is not yet implemented....")
 	}
 }

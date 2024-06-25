@@ -5,12 +5,20 @@
 ### Usage:
 
 1. Runtime Go 1.19
-2. Need to add your kubeconfig.(json|yaml) file and context name into ./config/kubeobject.yaml (you can define n number of cluster config and can group it by group_by)
+2. Need to add your kubeconfig.(json|yaml) file path and context name into ./config/kubeobject.yaml (you can define n number of cluster config and can group it by group_by)
+3. The ./config/kubeobject.yaml file should be kept on the root directory of CLI binary
 
-*note: 
+```
+| [root]
+|---> kubestream
+|---> config
+|     ----> kubeobject.yaml
+```
+
+*note:
     group_by is just defined for useability purposes. you might want to group cluster test, stage, prod, or region and if you want to fetch resource-only stage then --group_by="stage" can be used. If you want to get all the cluster resources then use --group_by="all"*
 
-*note: 
+*note:
     kubestream has been designed with concurrency hence you will have to pass kubeconfig path as an individual unique path and kubeconfig.yaml file to avoid race-condition while switching context between Kubernetes clusters.*
 
 
@@ -54,10 +62,11 @@ CLI Usage:
 ```
 ./kubestream --help
 
-kubestream get --api_resource=deployment --namespace="all" --group_by="aws-us-east"
-kubestream get --api_resource=daemonset --namespace="default" --group_by="local"
-kubestream get --api_resource=statefulset --namespace="default" --group_by="ibm-us-south"
-kubestream get --api_resource=statefulset --namespace="kube-system" --group_by="all"
+kubestream get --apiresource=deployments --namespace="all" --groupby="aws-us-east"
+kubestream get --apiresource=daemonsets --namespace="default" --groupby="local"
+kubestream get --apiresource=statefulsets --namespace="default" --groupby="ibm-us-south"
+kubestream get --apiresource=secrets --namespace="kube-system" --groupby="all"
+kubestream get --apiresource=configmaps --namespace="kube-system" --groupby="aws-us-east"
 ```
 
 Contributing: 

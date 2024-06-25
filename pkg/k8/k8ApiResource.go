@@ -16,6 +16,14 @@ type K8StandardApiResources interface {
 	Update()
 }
 
+func FetchStandardAPIResources(apiResource K8StandardApiResources) {
+	apiResource.List()
+}
+
+func PatchStandardAPIResources(apiResource K8StandardApiResources) {
+	apiResource.Update()
+}
+
 type Deployments struct {
 	Client         *kubernetes.Clientset
 	Namespace      string
@@ -98,10 +106,55 @@ func (ss *StatefulSets) Update() {
 	fmt.Println("updating all the statefulset resources")
 }
 
-func FetchStandardAPIResources(apiResource K8StandardApiResources) {
-	apiResource.List()
+type Secrets struct {
+	Client         *kubernetes.Clientset
+	Namespace      string
+	GroupNameAlias string
 }
 
-func PatchStandardAPIResources(apiResource K8StandardApiResources) {
-	apiResource.Update()
+func (se *Secrets) List() {
+	secrets, err := se.Client.CoreV1().Secrets(se.Namespace).List(context.Background(), metav1.ListOptions{})
+
+	if err != nil {
+		fmt.Printf("Error listing secrets: %v\n", err)
+		return
+	}
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"cluster", "type", "namespace", "name"})
+	for _, ses := range secrets.Items {
+		t.AppendRow([]interface{}{se.GroupNameAlias, "secrets", ses.Namespace, ses.Name})
+	}
+	t.Render()
+}
+
+func (se *Secrets) Update() {
+	fmt.Println("update secret is not permitted ....")
+}
+
+type Configmaps struct {
+	Client         *kubernetes.Clientset
+	Namespace      string
+	GroupNameAlias string
+}
+
+func (cm *Configmaps) List() {
+	configmap, err := cm.Client.CoreV1().ConfigMaps(cm.Namespace).List(context.Background(), metav1.ListOptions{})
+
+	if err != nil {
+		fmt.Printf("Error listing secrets: %v\n", err)
+		return
+	}
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"cluster", "type", "namespace", "name"})
+	for _, cme := range configmap.Items {
+		t.AppendRow([]interface{}{cm.GroupNameAlias, "configmap", cme.Namespace, cme.Name})
+	}
+	t.Render()
+}
+
+// todo: add logic to patch configmaps
+func (cm *Secrets) Configmaps() {
+	fmt.Println("update secret is not permitted ....")
 }
