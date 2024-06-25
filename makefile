@@ -3,7 +3,7 @@ GO111MODULE := on
 SHELL := /bin/bash
 export
 PLUGIN_NAME := kubestream
-PLUGIN_VERSION := v0.0.1
+PLUGIN_VERSION := v1.0.0
 
 .PHONY: build
 .PHONY: run
