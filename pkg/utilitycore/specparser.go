@@ -19,6 +19,7 @@ type ObjectMetadata struct {
 	KubernetesCluster []KubeConfigMetadata `yaml:"kubernetes_cluster"`
 }
 
+// todo: parser and query yaml based on regex, filter, string comparsion
 // type specParser interface {
 // 	parseConfigObject(filePath string) *objectMetadata
 // 	queryConfigObject(groupBy string) *objectMetadata

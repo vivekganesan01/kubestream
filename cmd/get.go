@@ -19,14 +19,14 @@ var (
 var getCmd = &cobra.Command{
 	Use:   "get",
 	Short: "Fetch API resource information",
-	Long:  `Command to fetch information and status about the live kubernetes resource object.`,
+	Long:  `A CLI tool similar to Kubectl (client side) but streams resources metadata and information from multiple Kubernetes clusters simultaneously.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		k8.GetResourceInformation(&apiResource, &namespace, &group)
 	},
 }
 
 func init() {
-	getCmd.Flags().StringVarP(&apiResource, "apiresource", "a", "all", "name api resource to be fetched")
+	getCmd.Flags().StringVarP(&apiResource, "apiresource", "a", "all", "name api resource to be fetched [deployments, statefulsets, daemonsets, secrets, configmaps]")
 	getCmd.Flags().StringVarP(&namespace, "namespace", "n", "default", "namespace")
 	getCmd.Flags().StringVarP(&group, "groupby", "g", "", "group by")
 }
