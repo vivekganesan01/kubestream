@@ -54,10 +54,11 @@ CLI Usage:
 ```
 ./kubestream --help
 
-kubestream get --apiresource=deployment --namespace="all" --groupby="aws-us-east"
-kubestream get --apiresource=daemonset --namespace="default" --groupby="local"
-kubestream get --apiresource=statefulset --namespace="default" --groupby="ibm-us-south"
-kubestream get --apiresource=statefulset --namespace="kube-system" --groupby="all"
+kubestream get --apiresource=deployments --namespace="all" --groupby="aws-us-east"
+kubestream get --apiresource=daemonsets --namespace="default" --groupby="local"
+kubestream get --apiresource=statefulsets --namespace="default" --groupby="ibm-us-south"
+kubestream get --apiresource=secrets --namespace="kube-system" --groupby="all"
+kubestream get --apiresource=configmaps --namespace="kube-system" --groupby="aws-us-east"
 ```
 
 Contributing: 
