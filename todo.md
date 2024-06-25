@@ -12,3 +12,4 @@
 10. proper error handling and logging
 11. add verbose mode
 12. add usage video clip
+13. EXPORT path of ./config/kubeobject.yaml as currently the folder should be created and kept and the cli binary root
