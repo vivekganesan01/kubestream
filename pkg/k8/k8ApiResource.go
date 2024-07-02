@@ -3,17 +3,21 @@ package k8
 import (
 	"context"
 	"fmt"
+	"kubestream/pkg/utilitycore"
 	"os"
 
 	"github.com/jedib0t/go-pretty/table"
+	"github.com/rs/zerolog/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/retry"
 )
 
 // todo: add filter native to kubernetes client api
 type K8StandardApiResources interface {
 	List()
 	Update()
+	Scale(rN string, replicas int32)
 }
 
 func FetchStandardAPIResources(apiResource K8StandardApiResources) {
@@ -28,6 +32,7 @@ type Deployments struct {
 	Client         *kubernetes.Clientset
 	Namespace      string
 	GroupNameAlias string
+	ResourceName   string
 }
 
 func (d *Deployments) List() {
@@ -50,6 +55,25 @@ func (d *Deployments) List() {
 
 func (d *Deployments) Update() {
 	fmt.Println("updating all the deployment resources")
+}
+
+func (d *Deployments) Scale(rN string, replicas int32) {
+	if d.Namespace == "all" {
+		log.Warn().Msg("warn: user passed all namespace to it will search for deployment in all the namespace and rollout")
+	}
+	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		result, getErr := d.Client.AppsV1().Deployments(d.Namespace).Get(context.TODO(), rN, metav1.GetOptions{})
+		if getErr != nil {
+			panic(fmt.Errorf("Failed to get latest version of Deployment: %v", getErr))
+		}
+		result.Spec.Replicas = utilitycore.Int32Ptr(replicas) // reduce replica count
+		_, updateErr := d.Client.AppsV1().Deployments(d.Namespace).Update(context.TODO(), result, metav1.UpdateOptions{})
+		return updateErr
+	})
+	if retryErr != nil {
+		panic(fmt.Errorf("Update failed: %v", retryErr))
+	}
+	fmt.Println("Updated deployment...")
 }
 
 type Daemonsets struct {
@@ -81,6 +105,10 @@ func (ds *Daemonsets) Update() {
 	fmt.Println("updating all the daemonsets resources")
 }
 
+func (ds *Daemonsets) Scale(rN string, replicas int32) {
+	fmt.Println("scaling all the deployment resources")
+}
+
 type StatefulSets struct {
 	Client         *kubernetes.Clientset
 	Namespace      string
@@ -104,6 +132,10 @@ func (ss *StatefulSets) List() {
 
 func (ss *StatefulSets) Update() {
 	fmt.Println("updating all the statefulset resources")
+}
+
+func (ss *StatefulSets) Scale(rN string, replicas int32) {
+	fmt.Println("scaling all the statefulset resources")
 }
 
 type Secrets struct {
@@ -132,6 +164,10 @@ func (se *Secrets) Update() {
 	fmt.Println("update secret is not permitted ....")
 }
 
+func (se *Secrets) Scale(rN string, replicas int32) {
+	fmt.Println("scale secret is not permitted ....")
+}
+
 type Configmaps struct {
 	Client         *kubernetes.Clientset
 	Namespace      string
@@ -155,6 +191,10 @@ func (cm *Configmaps) List() {
 }
 
 // todo: add logic to patch configmaps
-func (cm *Secrets) Configmaps() {
-	fmt.Println("update secret is not permitted ....")
+func (cm *Configmaps) Update() {
+	fmt.Println("update cm is not permitted ....")
+}
+
+func (cm *Configmaps) Scale() {
+	fmt.Println("update cm is not permitted ....")
 }
