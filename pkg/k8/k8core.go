@@ -112,7 +112,6 @@ func GetResourceInformation(apiResourceType, namespace *string, group *string) {
 		wg.Wait()
 
 	case "statefulsets":
-
 		var wg sync.WaitGroup
 		for _, item := range ccContext.KubernetesCluster {
 			wg.Add(1)
@@ -135,7 +134,6 @@ func GetResourceInformation(apiResourceType, namespace *string, group *string) {
 		wg.Wait()
 
 	case "daemonsets":
-
 		var wg sync.WaitGroup
 		for _, item := range ccContext.KubernetesCluster {
 			wg.Add(1)
@@ -166,7 +164,6 @@ func GetResourceInformation(apiResourceType, namespace *string, group *string) {
 		ListPods(ac, *namespace)
 
 	case "secrets":
-
 		var wg sync.WaitGroup
 		for _, item := range ccContext.KubernetesCluster {
 			wg.Add(1)
@@ -209,6 +206,7 @@ func GetResourceInformation(apiResourceType, namespace *string, group *string) {
 		}
 
 		wg.Wait()
+
 	default:
 		fmt.Println("this api_resource stream is not yet implemented....")
 	}
